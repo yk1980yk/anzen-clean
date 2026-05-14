@@ -1,0 +1,26 @@
+export default function LegalPage() {
+  return (
+    <div style={{ padding: 20, maxWidth: 800, margin: "0 auto" }}>
+      <h1 style={{ fontSize: 28, fontWeight: "bold", marginBottom: 20 }}>
+        特定商取引法に基づく表記
+      </h1>
+
+      <h2 style={{ marginTop: 20, fontWeight: "bold" }}>販売事業者</h2>
+      <p>Ark（アーク）</p>
+
+      <h2 style={{ marginTop: 20, fontWeight: "bold" }}>所在地</h2>
+      <p>（あなたの会社住所をここに記載）</p>
+
+      <h2 style={{ marginTop: 20, fontWeight: "bold" }}>お問い合わせ</h2>
+      <p>メールアドレス：info@example.com</p>
+
+      <h2 style={{ marginTop: 20, fontWeight: "bold" }}>販売価格</h2>
+      <p>各サービスページに記載</p>
+
+      <h2 style={{ marginTop: 20, fontWeight: "bold" }}>返品・キャンセル</h2>
+      <p>デジタル商品のため返品不可</p>
+
+      <p style={{ marginTop: 40 }}>制定日：2024年1月1日</p>
+    </div>
+  );
+}
