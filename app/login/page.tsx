@@ -2,85 +2,110 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function LoginPage() {
   const router = useRouter();
   
-  // 審査官がそのまま試せるように、テスト用のダミーアドレスを初期値に入れておきます
-  const [email, setEmail] = useState("test-user@example.com");
-  const [password, setPassword] = useState("123456");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // 👑 Supabaseのエラーをバイパスし、ログイン後の導線へ完璧に繋ぐ処理
+  // 🔑 Supabase Auth を使った本物のログイン処理
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setErrorMsg(null);
 
-    // ボタンを押したら、ローディングアニメーションを挟んで、正常にログイン成功した体でマップ（決済導線つき）へ遷移
-    setTimeout(() => {
-      router.push("/map/");
-    }, 800);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
+      });
+
+      if (error) {
+        setErrorMsg("ログインに失敗しました。メールアドレスまたはパスワードが正しくありません。");
+        console.error("Auth error:", error.message);
+      } else if (data.user) {
+        // ログイン成功したらメインのマップへ遷移
+        router.push("/map");
+      }
+    } catch (err) {
+      setErrorMsg("通信エラーが発生しました。時間を置いて再度お試しください。");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans">
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans">
       <div className="sm:mx-auto w-full max-w-md text-center">
-        <span style={{ fontSize: "56px" }}>🚨</span>
-        <h2 className="mt-4 text-3xl font-extrabold text-gray-900 tracking-tight">
-          ANZEN 管理システム
+        <span style={{ fontSize: "56px" }}>🔐</span>
+        <h2 className="mt-4 text-3xl font-black text-slate-900 tracking-tight">
+          ANZEN アカウントログイン
         </h2>
-        <p className="mt-2 text-sm text-gray-600 font-medium">
-          次世代型防犯プラットフォーム（Stripe確認用環境）
+        <p className="mt-2 text-sm text-slate-500 font-medium">
+          登録済みのメールアドレスでログインしてください。
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto w-full max-w-md">
-        <div className="bg-white py-8 px-4 shadow-xl sm:rounded-2xl sm:px-10 border border-gray-100">
+        <div className="bg-white py-8 px-4 shadow-xl sm:rounded-2xl sm:px-10 border border-slate-100">
           
-          <div className="mb-6 text-center bg-rose-50 p-3 rounded-xl border border-rose-100">
-            <p className="text-rose-700 text-xs font-bold">
-              🔒 審査用アカウントを設定済です。そのままログインしてご確認ください。
-            </p>
-          </div>
+          {/* エラーメッセージ表示エリア */}
+          {errorMsg && (
+            <div className="mb-5 text-center bg-red-50 p-3 rounded-xl border border-red-100">
+              <p className="text-red-600 text-xs font-bold">{errorMsg}</p>
+            </div>
+          )}
 
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">
-                メールアドレス（Stripeテスト用）
+              <label className="block text-sm font-bold text-slate-700 mb-1">
+                メールアドレス
               </label>
               <input
                 type="email"
+                required
+                placeholder="your@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full border border-gray-300 px-4 py-3 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white text-gray-900 text-base"
+                className="w-full border border-slate-200 px-4 py-3 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-slate-900 text-sm"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">
+              <label className="block text-sm font-bold text-slate-700 mb-1">
                 パスワード
               </label>
               <input
                 type="password"
+                required
+                placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full border border-gray-300 px-4 py-3 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white text-gray-900 text-base"
+                className="w-full border border-slate-200 px-4 py-3 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-slate-900 text-sm"
               />
             </div>
 
             <button
               type="submit"
-              className="w-full py-3.5 rounded-xl font-bold bg-gradient-to-r from-rose-600 to-rose-700 text-white hover:opacity-95 active:scale-[0.98] transition shadow-md text-base"
+              disabled={loading}
+              className="w-full py-3.5 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700 text-white active:scale-[0.98] transition shadow-md text-sm disabled:opacity-50"
             >
-              {loading ? "認証を検証中..." : "ログインしてマップ・決済を確認"}
+              {loading ? "サインイン中..." : "ログインする"}
             </button>
           </form>
 
-          {/* 規約への導線もここに綺麗に配置し、審査官が迷わないようにします */}
-          <div className="mt-6 border-t border-gray-100 pt-4 flex justify-around text-xs font-medium text-gray-500">
-            <a href="/privacy/" className="hover:underline">プライバシーポリシー</a>
-            <a href="/team/" className="hover:underline">利用規約</a>
-            <a href="/legal/" className="hover:underline">特定商取引法に基づく表記</a>
+          {/* 戻るリンク */}
+          <div className="mt-6 text-center">
+            <button 
+              onClick={() => router.push("/")}
+              className="text-xs font-bold text-indigo-500 hover:underline"
+            >
+              ← トップに戻る
+            </button>
           </div>
 
         </div>

@@ -1,78 +1,95 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function HomePage() {
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
 
-  // 👑 Stripeの決済ページ（Checkout）へジャンプする処理
-  // すでに実装済みのStripe決済URL、またはStripeから発行されたPayment LinkのURLをここに貼り付けてください
-  const handleStripeCheckout = () => {
-    window.location.href = "https://buy.stripe.com/test_xxxxxxxxxxxx"; // 👈 ここをご自身のStripeテスト決済URLに書き換えてください
-  };
+  // 🔐 すでにログインしているセッションがあれば自動でマップへリダイレクト
+  useEffect(() => {
+    const checkUserSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          router.push("/map");
+        }
+      } catch (error) {
+        console.error("セッション確認エラー:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    checkUserSession();
+  }, [router]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center font-sans text-sm font-medium text-slate-400">
+        読み込み中...
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans">
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans">
       <div className="sm:mx-auto w-full max-w-md text-center">
         <span style={{ fontSize: "56px" }}>🚨</span>
-        <h2 className="mt-4 text-3xl font-extrabold text-gray-900 tracking-tight">
-          ANZEN 次世代型防犯プラットフォーム
+        <h2 className="mt-4 text-3xl font-black text-slate-900 tracking-tight">
+          ANZEN プラットフォーム
         </h2>
-        <p className="mt-2 text-sm text-gray-600">
-          Stripe 決済確認・審査用ページ
+        <p className="mt-2 text-sm text-slate-500 font-medium">
+          あなたの毎日に、確かな安心と気づきを。
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto w-full max-w-md">
-        <div className="bg-white py-8 px-4 shadow-xl sm:rounded-2xl sm:px-10 border border-gray-100 flex flex-col gap-6">
+        <div className="bg-white py-8 px-4 shadow-xl sm:rounded-2xl sm:px-10 border border-slate-100 flex flex-col gap-5">
           
-          <div className="text-center bg-rose-50 p-4 rounded-xl border border-rose-100">
-            <p className="text-rose-700 text-sm font-bold">
-              Stripe審査官・テスト確認用画面
-            </p>
-            <p className="text-xs text-rose-600 mt-1">
-              ※現在、システムメンテナンスのためログインをスキップし、直接決済と規約をご確認いただけます。
-            </p>
-          </div>
-
-          {/* 🚀 審査を即座に通すためのメイン決済ボタン */}
-          <div>
+          {/* メイン認証導線 */}
+          <div className="flex flex-col gap-3">
             <button
-              onClick={handleStripeCheckout}
-              className="w-full py-4 rounded-xl font-bold bg-gradient-to-r from-rose-600 to-rose-700 text-white hover:opacity-95 active:scale-[0.98] transition text-base shadow-md text-center block"
+              onClick={() => router.push("/login")}
+              className="w-full py-3.5 rounded-xl font-bold bg-indigo-600 text-white hover:bg-indigo-700 active:scale-[0.98] transition text-sm shadow-md text-center block"
             >
-              💳 プレミアムプラン（月額300円）を購読する
+              🔐 アカウントにログイン / 新規登録
+            </button>
+
+            <button
+              onClick={() => router.push("/map")}
+              className="w-full py-3.5 rounded-xl font-bold bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 active:scale-[0.98] transition text-sm shadow-sm text-center block"
+            >
+              🗺️ ログインせずに直接マップを見る（ゲスト利用）
             </button>
           </div>
 
-          <div className="border-t border-gray-100 pt-4">
-            <p className="text-xs font-bold text-gray-500 mb-3 text-center">各種規約・法的表記（日英併記）</p>
-            
-            <div className="flex flex-col gap-2">
-              <button
-                onClick={() => router.push("/privacy/")}
-                className="w-full py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 text-sm font-medium transition"
-              >
-                🔒 Privacy Policy / プライバシーポリシー
-              </button>
-              
-              <button
-                onClick={() => router.push("/team/")}
-                className="w-full py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 text-sm font-medium transition"
-              >
-                📜 Terms of Service / 利用規約
-              </button>
-              
-              <button
-                onClick={() => router.push("/legal/")}
-                className="w-full py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 text-sm font-medium transition"
-              >
-                ⚖️ 特定商取引法に基づく表記
-              </button>
-            </div>
+          <div className="relative flex items-center justify-center my-1">
+            <div className="absolute w-full border-t border-slate-100"></div>
+            <span className="relative bg-white px-3 text-xs text-slate-400 font-bold uppercase tracking-wider">メンバーシップ</span>
           </div>
 
-          <p className="text-center text-xs text-gray-400 mt-2">
+          {/* 一般公開用のサブスクリプション導線 */}
+          <div>
+            <button
+              onClick={() => window.location.href = "https://buy.stripe.com/test_xxxxxxxxxxxx"} // 👈 本物のStripeテスト決済URLに書き換えてください
+              className="w-full py-3.5 rounded-xl font-bold bg-gradient-to-r from-slate-800 to-slate-900 text-white hover:opacity-95 active:scale-[0.98] transition text-sm shadow-md text-center block"
+            >
+              💳 プレミアムプラン（月額300円）に加入する
+            </button>
+          </div>
+
+          {/* 各種規約（すっきりしたフッターリンクに変更） */}
+          <div className="border-t border-slate-100 pt-5 mt-2 flex justify-around text-xs font-semibold text-slate-400">
+            <button onClick={() => router.push("/privacy")} className="hover:text-slate-600 transition">プライバシーポリシー</button>
+            <span>•</span>
+            <button onClick={() => router.push("/team")} className="hover:text-slate-600 transition">利用規約</button>
+            <span>•</span>
+            <button onClick={() => router.push("/legal")} className="hover:text-slate-600 transition">特定商取引法表記</button>
+          </div>
+
+          <p className="text-center text-[10px] text-slate-400 mt-2 font-medium">
             &copy; Ark Co., Ltd. All Rights Reserved.
           </p>
 
