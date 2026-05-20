@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "survive-os-app"
+  },
+  "targets": {
+    "survive-os-app": {
+      "hosting": {
+        "anzen-clean-live": [
+          "anzen-clean-live"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

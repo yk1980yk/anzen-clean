@@ -54,7 +54,7 @@ export default function NewPostPage() {
     }
 
     alert("投稿が完了しました！");
-    router.push("/posts");
+    router.push("/map"); // マップ画面へ遷移
   };
 
   return (
@@ -113,7 +113,7 @@ export default function NewPostPage() {
         <option value="danger">危険</option>
       </select>
 
-      {/* 公開範囲 */}
+      {/* 公開範囲（不完全だった構文をクリーンに修復しました） */}
       <label style={{ fontWeight: "bold" }}>公開範囲</label>
       <select
         value={visibility}
@@ -129,4 +129,33 @@ export default function NewPostPage() {
       >
         <option value="all">全体</option>
         <option value="nearby">近くの人</option>
-        <option value="family_nearby">
+        <option value="family_nearby">家族・近くの人</option>
+      </select>
+
+      {/* 位置情報ステータス */}
+      <p style={{ fontSize: 14, color: position ? "green" : "orange", marginBottom: 20 }}>
+        {position
+          ? `📍 位置情報取得済み (${position[0].toFixed(4)}, ${position[1].toFixed(4)})`
+          : "⏳ 位置情報を取得中..."}
+      </p>
+
+      {/* 送信ボタン */}
+      <button
+        onClick={handleSubmit}
+        style={{
+          width: "100%",
+          padding: 14,
+          background: "#E11D48",
+          color: "white",
+          border: "none",
+          borderRadius: 6,
+          fontSize: 16,
+          fontWeight: "bold",
+          cursor: "pointer",
+        }}
+      >
+        投稿する
+      </button>
+    </div>
+  );
+}

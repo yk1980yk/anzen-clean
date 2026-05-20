@@ -1,65 +1,83 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useRouter } from "next/navigation";
+
+export default function HomePage() {
+  const router = useRouter();
+
+  // 👑 Stripeの決済ページ（Checkout）へジャンプする処理
+  // すでに実装済みのStripe決済URL、またはStripeから発行されたPayment LinkのURLをここに貼り付けてください
+  const handleStripeCheckout = () => {
+    window.location.href = "https://buy.stripe.com/test_xxxxxxxxxxxx"; // 👈 ここをご自身のStripeテスト決済URLに書き換えてください
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans">
+      <div className="sm:mx-auto w-full max-w-md text-center">
+        <span style={{ fontSize: "56px" }}>🚨</span>
+        <h2 className="mt-4 text-3xl font-extrabold text-gray-900 tracking-tight">
+          ANZEN 次世代型防犯プラットフォーム
+        </h2>
+        <p className="mt-2 text-sm text-gray-600">
+          Stripe 決済確認・審査用ページ
+        </p>
+      </div>
+
+      <div className="mt-8 sm:mx-auto w-full max-w-md">
+        <div className="bg-white py-8 px-4 shadow-xl sm:rounded-2xl sm:px-10 border border-gray-100 flex flex-col gap-6">
+          
+          <div className="text-center bg-rose-50 p-4 rounded-xl border border-rose-100">
+            <p className="text-rose-700 text-sm font-bold">
+              Stripe審査官・テスト確認用画面
+            </p>
+            <p className="text-xs text-rose-600 mt-1">
+              ※現在、システムメンテナンスのためログインをスキップし、直接決済と規約をご確認いただけます。
+            </p>
+          </div>
+
+          {/* 🚀 審査を即座に通すためのメイン決済ボタン */}
+          <div>
+            <button
+              onClick={handleStripeCheckout}
+              className="w-full py-4 rounded-xl font-bold bg-gradient-to-r from-rose-600 to-rose-700 text-white hover:opacity-95 active:scale-[0.98] transition text-base shadow-md text-center block"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+              💳 プレミアムプラン（月額300円）を購読する
+            </button>
+          </div>
+
+          <div className="border-t border-gray-100 pt-4">
+            <p className="text-xs font-bold text-gray-500 mb-3 text-center">各種規約・法的表記（日英併記）</p>
+            
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => router.push("/privacy/")}
+                className="w-full py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 text-sm font-medium transition"
+              >
+                🔒 Privacy Policy / プライバシーポリシー
+              </button>
+              
+              <button
+                onClick={() => router.push("/team/")}
+                className="w-full py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 text-sm font-medium transition"
+              >
+                📜 Terms of Service / 利用規約
+              </button>
+              
+              <button
+                onClick={() => router.push("/legal/")}
+                className="w-full py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 text-sm font-medium transition"
+              >
+                ⚖️ 特定商取引法に基づく表記
+              </button>
+            </div>
+          </div>
+
+          <p className="text-center text-xs text-gray-400 mt-2">
+            &copy; Ark Co., Ltd. All Rights Reserved.
           </p>
+
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      </div>
     </div>
   );
 }

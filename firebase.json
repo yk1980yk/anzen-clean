@@ -1,0 +1,13 @@
+{
+  "hosting": {
+    "site": "anzen-clean-live",
+    "public": "out",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "cleanUrls": true,
+    "trailingSlash": true
+  }
+}
