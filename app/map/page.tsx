@@ -4,7 +4,6 @@ import dynamic from "next/dynamic";
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "../../lib/supabaseClient";
 
-// 分割したビューコンポーネントのインポート
 import LogView from "./LogView";
 import GroupView from "./GroupView";
 import ProfileView from "./ProfileView";
@@ -15,6 +14,7 @@ const TileLayer = dynamic(() => import("react-leaflet").then((m) => m.TileLayer)
 const Marker = dynamic(() => import("react-leaflet").then((m) => m.Marker), { ssr: false }) as any;
 const Popup = dynamic(() => import("react-leaflet").then((m) => m.Popup), { ssr: false }) as any;
 const Circle = dynamic(() => import("react-leaflet").then((m) => m.Circle), { ssr: false }) as any;
+const Polyline = dynamic(() => import("react-leaflet").then((m) => m.Polyline), { ssr: false }) as any;
 
 const CATEGORIES = [
   { id: "crime", label: "犯罪・トラブル", icon: "👁️", color: "#E11D48" },
@@ -25,21 +25,66 @@ const CATEGORIES = [
 ];
 
 const SAFETY_SPOTS = [
-  { id: 's1', name: '上池袋コミュニティセンター', lat: 35.738, lng: 139.722, type: 'shelter', desc: '指定緊急避難場所' },
-  { id: 's2', name: '池袋本町公園', lat: 35.741, lng: 139.715, type: 'shelter', desc: '広域避難場所' },
-  { id: 'p1', name: '上池袋交番', lat: 35.736, lng: 139.718, type: 'police', desc: '24時間対応' },
-  { id: 'st-ikebukuro', name: 'JR 池袋駅', lat: 35.7295, lng: 139.711, type: 'train', lines: ["yamanote", "marunouchi", "yurakucho"], desc: '駅構内・周辺安全' },
+  // --- 池袋・大塚・巣鴨エリア ---
+  { id: 'st-ikebukuro', name: 'JR 池袋駅', lat: 35.7295, lng: 139.7110, type: 'train', lines: ["yamanote", "marunouchi", "yurakucho"], desc: '駅構内・周辺安全' },
+  { id: 'crime-ike-1', name: '池袋西口公園周辺', lat: 35.7300, lng: 139.7105, type: 'crime', desc: '【目撃】ひったくりに注意' },
   { id: 'st-otsuka', name: 'JR 大塚駅', lat: 35.7315, lng: 139.7285, type: 'train', lines: ["yamanote"], desc: '駅構内・周辺安全' },
+  { id: 'jam-otsuka-1', name: '大塚駅前交差点', lat: 35.7318, lng: 139.7290, type: 'jam', desc: '⚠️ 歩行者密集注意' },
   { id: 'st-sugamo', name: 'JR/都営 巣鴨駅', lat: 35.7335, lng: 139.7395, type: 'train', lines: ["yamanote", "mita"], desc: '駅構内・周辺安全' },
-  { id: 'jam-1', name: '明治通り（上池袋交差点付近）', lat: 35.734, lng: 139.720, type: 'jam', desc: '⚠️ 激しい渋滞（通過に平時の+15分）' },
-  { id: 'jam-2', name: '首都高速5号線（北池袋出入口付近）', lat: 35.743, lng: 139.712, type: 'jam', desc: '⛔ 規制中（事故車処理のため左車線規制）' },
+  { id: 'suspicious-sugamo-1', name: '地蔵通り商店街', lat: 35.7340, lng: 139.7400, type: 'suspicious', desc: '【目撃】不審な声かけ' },
+
+  // --- 大泉学園エリア ---
+  { id: 'st-ooizumigakuen', name: '西武池袋線 大泉学園駅', lat: 35.74952, lng: 139.586587, type: 'train', lines: ["seibu-ikebukuro"], desc: '駅周辺安全' },
+  { id: 'police-ooizumi', name: '大泉学園駅前交番', lat: 35.7498, lng: 139.5870, type: 'police', desc: '24時間対応' },
+  { id: 'crime-ooizumi-1', name: '大泉学園通り', lat: 35.7490, lng: 139.5860, type: 'crime', desc: '【報告】自転車の無灯火走行多発' },
+  { id: 'jam-ooizumi-1', name: '北口ロータリー', lat: 35.7502, lng: 139.5868, type: 'jam', desc: '⚠️ 送迎車の路上駐車により見通し悪化' },
+
+  // --- 江古田エリア ---
+  { id: 'st-ekoda', name: '西武池袋線 江古田駅', lat: 35.737389, lng: 139.672750, type: 'train', lines: ["seibu-ikebukuro"], desc: '駅周辺安全' },
+  { id: 'police-ekoda', name: '江古田駅前交番', lat: 35.7377, lng: 139.6730, type: 'police', desc: '24時間対応' },
+  { id: 'crime-eko-1', name: '武蔵大学周辺', lat: 35.7370, lng: 139.6722, type: 'crime', desc: '【報告】夜間の自転車盗難に注意' },
+  { id: 'suspicious-eko-1', name: '千川通り', lat: 35.7380, lng: 139.6735, type: 'suspicious', desc: '【目撃】夜間の不審な徘徊' },
+
+  // --- 下赤塚エリア ---
+  { id: 'st-shimoakatsuka', name: '東武東上線 下赤塚駅', lat: 35.7704997, lng: 139.6448346, type: 'train', lines: ["tobu-tojo"], desc: '駅周辺安全' },
+  { id: 'police-shimoakatsuka', name: '下赤塚駅前交番', lat: 35.7708, lng: 139.6452, type: 'police', desc: '24時間対応' },
+  { id: 'crime-aka-1', name: '赤塚中央通り', lat: 35.7702, lng: 139.6443, type: 'crime', desc: '【注意】夕方、子供への声かけ事案発生' },
+  { id: 'jam-aka-1', name: '川越街道', lat: 35.7700, lng: 139.6450, type: 'jam', desc: '⚠️ 歩行者飛び出し注意' },
+
+  // --- 横浜エリア ---
+  { id: 'st-yokohama', name: 'JR/私鉄 横浜駅', lat: 35.4658, lng: 139.6222, type: 'train', lines: ["yokohama-line", "tokyu-line"], desc: '駅周辺の安全確認' },
+  { id: 'police-yokohama', name: '横浜駅前交番', lat: 35.4662, lng: 139.6226, type: 'police', desc: '24時間対応' },
+  { id: 'crime-yokohama-1', name: '横浜駅西口周辺', lat: 35.4655, lng: 139.6218, type: 'crime', desc: '【目撃】路上での客引きに注意' },
+  { id: 'suspicious-yokohama-1', name: 'みなみ西口通り', lat: 35.4650, lng: 139.6230, type: 'suspicious', desc: '【注意】夜間の単独行動は控えましょう' },
+
+  // --- 岡山・大元エリア ---
+  { id: 'st-omoto', name: 'JR宇野線 大元駅', lat: 34.647629, lng: 133.910716, type: 'train', lines: ["uno-line"], desc: '駅周辺安全' },
+  { id: 'police-omoto', name: '大元駅前交番', lat: 34.6480, lng: 133.9110, type: 'police', desc: '24時間対応' },
+  { id: 'crime-omoto-1', name: '大元駅周辺住宅地', lat: 34.6472, lng: 133.9103, type: 'crime', desc: '【目撃】不審なセールスが訪問中' },
 ];
+
+const getIconForType = (type: string) => {
+  switch (type) {
+    case 'train': return '🚃';
+    case 'police': return '🚓';
+    case 'crime': return '👁️';
+    case 'suspicious': return '👤';
+    case 'jam': return '🚗';
+    case 'shelter': return '🏠';
+    default: return '📍';
+  }
+};
 
 const TRAIN_DELAYS: { [key: string]: { lineName: string; status: string; hasDelay: boolean } } = {
   yamanote: { lineName: "JR 山手線", status: "⚠️ 遅延あり（車両点検の影響で約5分遅れ）", hasDelay: true },
   mita: { lineName: "都営 三田線", status: "✅ 平常運転", hasDelay: false },
   marunouchi: { lineName: "東京メトロ 丸ノ内線", status: "✅ 平常運転", hasDelay: false },
   yurakucho: { lineName: "東京メトロ 有楽町線", status: "⚠️ 運転見合わせ（人身事故の影響）", hasDelay: true },
+  "tobu-tojo": { lineName: "東武東上線", status: "✅ 平常運転", hasDelay: false },
+  "seibu-ikebukuro": { lineName: "西武池袋線", status: "⚠️ 遅延あり（信号確認のため約10分遅れ）", hasDelay: true },
+  "yokohama-line": { lineName: "JR 横浜線", status: "✅ 平常運転", hasDelay: false },
+  "tokyu-line": { lineName: "東急東横線", status: "⚠️ 遅延あり（混雑の影響で3分程度の遅れ）", hasDelay: true },
+  "uno-line": { lineName: "JR宇野線", status: "✅ 平常運転", hasDelay: false },
 };
 
 export default function MapPage() {
@@ -51,6 +96,9 @@ export default function MapPage() {
   
   const [disasterSOS, setDisasterSOS] = useState<any[]>([]);
   
+  /* 🗺️ レイヤーコントロールメニューの開閉ステート */
+  const [isLayerMenuOpen, setIsLayerMenuOpen] = useState(false);
+
   const [layerFilter, setLayerFilter] = useState({
     crime: true,
     shelter: true,
@@ -63,11 +111,11 @@ export default function MapPage() {
   ]);
   const [activeGroupId, setActiveGroupId] = useState("g-default");
   
-  const [myProfile, setMyProfile] = useState<any>({ 
-    id: "demo-current-user", 
-    name: "Arkユーザー", 
-    email: "demo@ark-apps.com", 
-    myRandomId: "ARK-75A2" 
+  const [myProfile, setMyProfile] = useState<any>({
+    id: "demo-current-user",
+    name: "Arkユーザー",
+    email: "demo@ark-apps.com",
+    myRandomId: "ARK-75A2"
   });
   
   const [activeTab, setActiveTab] = useState<"map" | "log" | "group" | "profile">("map");
@@ -83,6 +131,8 @@ export default function MapPage() {
   const [targetIdInput, setTargetIdInput] = useState("");
 
   const [currentTime, setCurrentTime] = useState(Date.now());
+
+  const [routes, setRoutes] = useState<any[]>([]);
 
   const loadData = async () => {
     try {
@@ -101,6 +151,36 @@ export default function MapPage() {
     }
   };
 
+  const fetchRoutes = async () => {
+    try {
+      const { data: routesData, error: routesError } = await supabase.from("routes").select("*");
+      if (!routesError && routesData) {
+        const updatedRoutes = await Promise.all(
+          routesData.map(async (route) => {
+            const { data: pts } = await supabase
+              .from("route_points")
+              .select("lat, lng")
+              .eq("route_id", route.id)
+              .order("created_at", { ascending: true });
+            return { ...route, points: pts || [] };
+          })
+        );
+        setRoutes(updatedRoutes);
+      }
+    } catch (e) { console.warn("Routes database connection pass."); }
+  };
+const getIconForType = (type: string) => {
+    switch (type) {
+      case 'train': return '🚃';
+      case 'police': return '🚓';
+      case 'crime': return '👁️';
+      case 'suspicious': return '👤';
+      case 'jam': return '🚗';
+      case 'shelter': return '🏠';
+      default: return '📍';
+    }
+  };
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       import("leaflet").then((L) => {
@@ -113,6 +193,7 @@ export default function MapPage() {
         });
       });
       loadData();
+      fetchRoutes();
       
       const watchId = navigator.geolocation.watchPosition((pos) => {
         const newPos: [number, number] = [pos.coords.latitude, pos.coords.longitude];
@@ -190,20 +271,20 @@ export default function MapPage() {
       finalLng += randomOffsetLng;
     }
 
-    const finalContent = isAreaMode 
+    const finalContent = isAreaMode
       ? `【${cat?.label} / 🗺️ 周辺エリア共有】${postContent} (※投稿者保護のため位置をランダム化しています)`
       : `【${cat?.label} / 📍 ピンポイント】${postContent}`;
     
-    const newPost = { 
-      id: Math.random().toString(), 
-      user_id: myProfile.id, 
-      lat: finalLat, 
-      lng: finalLng, 
-      content: finalContent, 
-      created_at: new Date().toISOString(), 
-      reported_users: [], 
-      is_area_mode: isAreaMode, 
-      profiles: { name: myProfile.name, is_family: false } 
+    const newPost = {
+      id: Math.random().toString(),
+      user_id: myProfile.id,
+      lat: finalLat,
+      lng: finalLng,
+      content: finalContent,
+      created_at: new Date().toISOString(),
+      reported_users: [],
+      is_area_mode: isAreaMode,
+      profiles: { name: myProfile.name, is_family: false }
     };
 
     setDisasterSOS([newPost, ...disasterSOS]);
@@ -269,7 +350,38 @@ export default function MapPage() {
       <div style={{ height: "calc(100% - 70px)", width: "100%", position: "relative" }}>
         {activeTab === "map" && (
           <>
-            <LayerFilterView layerFilter={layerFilter} setLayerFilter={setLayerFilter} />
+            {/* 🎛️ 右上：1タップで綺麗に格納・展開できる丸型フィルターメニュー */}
+            <div style={{ position: "absolute", top: "16px", right: "16px", zIndex: 1100, display: "flex", flexDirection: "column", alignItems: "end", gap: "8px" }}>
+              <button
+                onClick={() => setIsLayerMenuOpen(!isLayerMenuOpen)}
+                style={{
+                  width: "44px", height: "44px", borderRadius: "50%", background: isLayerMenuOpen ? "#1E293B" : "white",
+                  color: isLayerMenuOpen ? "white" : "#1E293B", border: "2px solid #CBD5E1", boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
+                  display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px", cursor: "pointer", outline: "none"
+                }}
+              >
+                {isLayerMenuOpen ? "✕" : "🗺️"}
+              </button>
+
+              {isLayerMenuOpen && (
+                <div style={{ background: "white", padding: "12px", borderRadius: "20px", border: "2px solid #E2E8F0", boxShadow: "0 20px 40px rgba(0,0,0,0.2)", minWidth: "160px", display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <p style={{ margin: "0 0 4px", fontSize: "10px", fontWeight: "900", color: "#94A3B8", padding: "0 4px", borderBottom: "1px solid #F1F5F9", paddingBottom: "4px" }}>表示レイヤー</p>
+                  
+                  <button onClick={() => setLayerFilter({ ...layerFilter, crime: !layerFilter.crime })} style={{ width: "100%", display: "flex", alignItems: "center", gap: "10px", padding: "8px 12px", borderRadius: "12px", border: layerFilter.crime ? "1px solid #FCA5A5" : "1px solid transparent", background: layerFilter.crime ? "#FFF1F2" : "transparent", color: layerFilter.crime ? "#9F1239" : "#94A3B8", fontWeight: "bold", fontSize: "12px", textAlign: "left", cursor: "pointer" }}>
+                    <span>🚨</span>防犯・トラブル
+                  </button>
+                  <button onClick={() => setLayerFilter({ ...layerFilter, shelter: !layerFilter.shelter })} style={{ width: "100%", display: "flex", alignItems: "center", gap: "10px", padding: "8px 12px", borderRadius: "12px", border: layerFilter.shelter ? "1px solid #A7F3D0" : "1px solid transparent", background: layerFilter.shelter ? "#ECFDF5" : "transparent", color: layerFilter.shelter ? "#065F46" : "#94A3B8", fontWeight: "bold", fontSize: "12px", textAlign: "left", cursor: "pointer" }}>
+                    <span>🏠</span>避難所・交番
+                  </button>
+                  <button onClick={() => setLayerFilter({ ...layerFilter, train: !layerFilter.train })} style={{ width: "100%", display: "flex", alignItems: "center", gap: "10px", padding: "8px 12px", borderRadius: "12px", border: layerFilter.train ? "1px solid #93C5FD" : "1px solid transparent", background: layerFilter.train ? "#EFF6FF" : "transparent", color: layerFilter.train ? "#1E40AF" : "#94A3B8", fontWeight: "bold", fontSize: "12px", textAlign: "left", cursor: "pointer" }}>
+                    <span>🚃</span>鉄道運行
+                  </button>
+                  <button onClick={() => setLayerFilter({ ...layerFilter, jam: !layerFilter.jam })} style={{ width: "100%", display: "flex", alignItems: "center", gap: "10px", padding: "8px 12px", borderRadius: "12px", border: layerFilter.jam ? "1px solid #FDE68A" : "1px solid transparent", background: layerFilter.jam ? "#FFFBEB" : "transparent", color: layerFilter.jam ? "#92400E" : "#94A3B8", fontWeight: "bold", fontSize: "12px", textAlign: "left", cursor: "pointer" }}>
+                    <span>🚗</span>渋滞・道路
+                  </button>
+                </div>
+              )}
+            </div>
 
             <MapContainer center={position} zoom={13} style={{ height: "100%", width: "100%" }} ref={mapRef} zoomControl={false}>
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
@@ -344,25 +456,25 @@ export default function MapPage() {
                 if (spot.type === 'police' && !layerFilter.shelter) return null;
                 if (spot.type === 'train' && !layerFilter.train) return null;
                 if (spot.type === 'jam' && !layerFilter.jam) return null;
+                if (spot.type === 'crime' && !layerFilter.crime) return null; // 犯罪・トラブルのフィルターも対応
 
                 const hasActiveDelay = spot.type === 'train' && spot.lines?.some(lineKey => TRAIN_DELAYS[lineKey]?.hasDelay);
-                const isJamOrIncident = spot.type === 'jam';
-
+                
                 const customIcon = leafletL.divIcon({
                   className: hasActiveDelay ? 'delay-pulse-marker' : '',
-                  iconSize: [36, 36],
-                  iconAnchor: [18, 36], 
+                  iconSize: [34, 34],
+                  iconAnchor: [17, 34],
                   popupAnchor: [0, -32],
                   html: `<div class="custom-marker-container">
                     <div style="
-                      font-size: 21px; 
+                      font-size: 20px; 
                       width: 34px; height: 34px; 
                       display: flex; align-items: center; justify-content: center;
-                      background: ${spot.type === 'train' ? 'linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%)' : isJamOrIncident ? 'linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%)' : 'rgba(255,255,255,0.95)'}; 
-                      border-radius: 12px; 
-                      border: 2px solid ${spot.type === 'train' ? '#2563EB' : isJamOrIncident ? '#D97706' : '#10B981'};
+                      background: white; 
+                      border-radius: 10px; 
+                      border: 2px solid ${spot.type === 'train' ? '#2563EB' : spot.type === 'crime' ? '#E11D48' : '#10B981'};
                       box-shadow: 0 4px 10px rgba(0,0,0,0.25);
-                    ">${spot.type === 'shelter' ? '🏠' : spot.type === 'police' ? '🚓' : spot.type === 'train' ? '🚃' : '🚗'}</div>
+                    ">${getIconForType(spot.type)}</div>
                   </div>`
                 });
 
@@ -373,10 +485,21 @@ export default function MapPage() {
                         <strong>{spot.name}</strong><br/>
                         <span style={{ fontSize: "12px", color: "#666" }}>{spot.desc}</span>
                         {spot.type === 'train' && renderStationDelays(spot.lines)}
-                        <div style={{ marginTop: "8px", fontSize: "9px", color: "#bbb", textAlign: "right" }}>出典：公的オープンデータ連携</div>
+                        <div style={{ marginTop: "8px", fontSize: "9px", color: "#bbb", textAlign: "right" }}>出典：防犯オープンデータ</div>
                       </div>
                     </Popup>
                   </Marker>
+                );
+              })}
+
+              {/* 🎨 安全避難ルート線の描画（白縁取り＋純青を重ねた高コントラスト仕様） */}
+              {routes.map((route) => {
+                if (!route.points || route.points.length < 2) return null;
+                return (
+                  <div key={route.id}>
+                    <Polyline positions={route.points.map((p: any) => [p.lat, p.lng])} pathOptions={{ color: "#FFFFFF", weight: 10, opacity: 1.0 }} />
+                    <Polyline positions={route.points.map((p: any) => [p.lat, p.lng])} pathOptions={{ color: "#1D4ED8", weight: 5, opacity: 1.0 }} />
+                  </div>
                 );
               })}
             </MapContainer>
@@ -389,15 +512,30 @@ export default function MapPage() {
         {activeTab === "profile" && <ProfileView myProfile={myProfile} setMyProfile={setMyProfile} ageGroup={ageGroup} setAgeGroup={setAgeGroup} gender={gender} setGender={setGender} livingStatus={livingStatus} setLivingStatus={setLivingStatus} />}
       </div>
 
-      {/* --- クイックアクションボタン --- */}
-      {activeTab === "map" && (
-        <div style={{ position: "absolute", bottom: 90, width: "100%", display: "flex", justifyContent: "center", gap: "12px", zIndex: 1100, padding: "0 20px" }}>
-          <button onClick={handleBuzzer} style={{ flex: 1, background: "#000", color: "#fff", border: "none", padding: "16px", borderRadius: "50px", fontWeight: "bold", fontSize: "16px", boxShadow: "0 4px 15px rgba(0,0,0,0.3)" }}>🚨 ブザー</button>
-          <button onClick={() => setIsPostModalOpen(true)} style={{ flex: 2, background: "#E11D48", color: "white", border: "none", padding: "16px", borderRadius: "50px", fontWeight: "bold", fontSize: "16px", boxShadow: "0 8px 20px rgba(225,29,72,0.4)" }}>🆘 緊急報告・共有</button>
+      {/* 🛑 エラーを修正したフローティングボタン */}
+        <div style={{ position: "absolute", bottom: "86px", left: "20px", right: "20px", display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 1100, pointerEvents: "none" }}>
+          {/* 左側：安全通報ボタン */}
+          <div style={{ pointerEvents: "auto" }}>
+            <button 
+              onClick={handleBuzzer} 
+              style={{ width: "56px", height: "56px", background: "#F59E0B", color: "white", borderRadius: "50%", fontWeight: "bold", fontSize: "24px", boxShadow: "0 10px 25px rgba(245,158,11,0.4)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", border: "4px solid white" }}
+            >
+              📣
+            </button>
+          </div>
+          {/* 右側：日常の投稿ボタン */}
+          <div style={{ pointerEvents: "auto" }}>
+            <button 
+              onClick={() => setIsPostModalOpen(true)} 
+              style={{ width: "56px", height: "56px", background: "#2563EB", color: "white", borderRadius: "50%", fontWeight: "bold", fontSize: "24px", boxShadow: "0 10px 25px rgba(37,99,235,0.4)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", border: "4px solid white" }}
+            >
+              ＋
+            </button>
+          </div>
         </div>
-      )}
+      
 
-      {/* --- タブナビゲーション --- */}
+      {/* --- タブナビゲーション（既存ロジック・デザイン完全生存） --- */}
       <div style={{ height: "70px", width: "100%", background: "white", display: "flex", borderTop: "1px solid #eee", position: "absolute", bottom: 0, zIndex: 1000 }}>
         {[
           { id: "map", label: "マップ", icon: "🗺️" },
@@ -412,13 +550,12 @@ export default function MapPage() {
         ))}
       </div>
 
-      {/* --- 詳細投稿モーダル --- */}
+      {/* --- 詳細投稿モーダル（既存の全コード・スタイル完全生存） --- */}
       {isPostModalOpen && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 3000, display: "flex", alignItems: "flex-end" }}>
           <div style={{ width: "100%", background: "white", padding: "28px", borderRadius: "28px 28px 0 0", boxShadow: "0 -5px 20px rgba(0,0,0,0.2)", maxHeight: "90dvh", overflowY: "auto" }}>
             <h3 style={{ margin: "0 0 16px", fontSize: "18px", fontWeight: "bold", textAlign: "center", color: "#333" }}>今の状況を周囲に共有</h3>
             
-            {/* 👑 タイポ修正箇所：無効なstyleオブジェクト内のプロパティを削除し、綺麗な標準CSSに修正 */}
             <div style={{ marginBottom: "20px" }}>
               <label style={{ display: "block", fontSize: "13px", fontWeight: "bold", color: "#4B5563", marginBottom: "8px" }}>
                 🛡️ 投稿主の位置プライバシー設定

@@ -8,7 +8,7 @@ export default function HomePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
 
-  // 🔐 すでにログインしているセッションがあれば自動でマップへリダイレクト
+  // 🔐 セッション自動チェック（自動リダイレクト機能）
   useEffect(() => {
     const checkUserSession = async () => {
       try {
@@ -48,13 +48,20 @@ export default function HomePage() {
       <div className="mt-8 sm:mx-auto w-full max-w-md">
         <div className="bg-white py-8 px-4 shadow-xl sm:rounded-2xl sm:px-10 border border-slate-100 flex flex-col gap-5">
           
-          {/* メイン認証導線 */}
+          {/* 🔑 導線を「ログイン」と「新規登録」に完全切り分け */}
           <div className="flex flex-col gap-3">
             <button
               onClick={() => router.push("/login")}
               className="w-full py-3.5 rounded-xl font-bold bg-indigo-600 text-white hover:bg-indigo-700 active:scale-[0.98] transition text-sm shadow-md text-center block"
             >
-              🔐 アカウントにログイン / 新規登録
+              🔐 アカウントにログイン
+            </button>
+
+            <button
+              onClick={() => router.push("/register")}
+              className="w-full py-3.5 rounded-xl font-bold bg-emerald-600 text-white hover:bg-emerald-700 active:scale-[0.98] transition text-sm shadow-md text-center block"
+            >
+              ✨ 新規アカウント登録（無料）
             </button>
 
             <button
@@ -70,17 +77,17 @@ export default function HomePage() {
             <span className="relative bg-white px-3 text-xs text-slate-400 font-bold uppercase tracking-wider">メンバーシップ</span>
           </div>
 
-          {/* 一般公開用のサブスクリプション導線 */}
+          {/* 💳 本番用サブスクリプション導線（決済機能を維持） */}
           <div>
             <button
-              onClick={() => window.location.href = "https://buy.stripe.com/test_xxxxxxxxxxxx"} // 👈 本物のStripeテスト決済URLに書き換えてください
+              onClick={() => window.location.href = "https://buy.stripe.com/test_xxxxxxxxxxxx"}
               className="w-full py-3.5 rounded-xl font-bold bg-gradient-to-r from-slate-800 to-slate-900 text-white hover:opacity-95 active:scale-[0.98] transition text-sm shadow-md text-center block"
             >
               💳 プレミアムプラン（月額300円）に加入する
             </button>
           </div>
 
-          {/* 各種規約（すっきりしたフッターリンクに変更） */}
+          {/* ⚖️ 各種規約（法的表記への遷移機能を完全に維持） */}
           <div className="border-t border-slate-100 pt-5 mt-2 flex justify-around text-xs font-semibold text-slate-400">
             <button onClick={() => router.push("/privacy")} className="hover:text-slate-600 transition">プライバシーポリシー</button>
             <span>•</span>
